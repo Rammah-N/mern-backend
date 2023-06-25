@@ -1,5 +1,5 @@
 const uuid = require("uuid").v4;
-
+const { validationResult } = require("express-validator");
 const HttpError = require("../models/httpError");
 
 const places = [
@@ -69,6 +69,12 @@ function getPlacesByUserID(req, res, next) {
 }
 
 function addPlace(req, res, next) {
+	const errors = validationResult(req);
+
+	if (!errors.isEmpty()) {
+		res.status(422).json(errors);
+	}
+
 	const { title, description, location, address, creator } = req.body;
 
 	const newPlace = {
@@ -85,6 +91,12 @@ function addPlace(req, res, next) {
 }
 
 function updatePlace(req, res, next) {
+	const errors = validationResult(req);
+
+	if (!errors.isEmpty()) {
+		res.status(422).json(errors);
+	}
+
 	const pid = req.params.pid;
 	const newPlace = req.body;
 	const index = places.find((p) => p.id === pid);
@@ -97,9 +109,11 @@ function updatePlace(req, res, next) {
 function deletePlace(req, res, next) {
 	const pid = req.params.id;
 	const index = places.find((p) => p.id === pid);
-
-	places.splice(index, 1);
-	res.status(200).json({ message: "Place was deleted successfully " });
+	if (index >= 0) {
+		places.splice(index, 1);
+		res.status(200).json({ message: "Place was deleted successfully " });
+	}
+	throw new HttpError("Could not find a place", 400);
 }
 
 exports.getPlaceByID = getPlaceByID;
