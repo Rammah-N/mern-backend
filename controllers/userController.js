@@ -1,21 +1,25 @@
 const uuid = require("uuid").v4;
 const { validationResult } = require("express-validator");
+
 const HttpError = require("../models/httpError");
+const User = require("../models/user");
 
-const users = [
-	{
-		id: "1",
-		name: "John Doe",
-		email: "test@test.com",
-		password: "1234",
-	},
-];
-
-function getUsers(req, res, next) {
-	res.status(200).json({ users });
+async function getUsers(req, res, next) {
+	let users;
+	try {
+		users = await User.find({}, "-password");
+	} catch (error) {
+		return next(
+			new HttpError("There was a problem on our side, please try again later"),
+			500
+		);
+	}
+	res
+		.status(200)
+		.json({ users: users.map((user) => user.toObject({ getters: true })) });
 }
 
-function signup(req, res, next) {
+async function signup(req, res, next) {
 	const errors = validationResult(req);
 
 	if (!errors.isEmpty()) {
@@ -23,36 +27,58 @@ function signup(req, res, next) {
 	}
 
 	const { name, email, password } = req.body;
-	if (users.find((user) => user.email === email)) {
-		throw new HttpError(
-			"This email already exists, please use a new one.",
-			422
+	let emailExists;
+	try {
+		emailExists = await User.findOne({ email });
+	} catch (err) {
+		const error = new HttpError(
+			"Signing up failed, please try again later",
+			500
 		);
+		return next(error);
 	}
 
-	const newUser = {
-		id: uuid(),
-		name,
-		email,
-		password,
-	};
+	if (emailExists) {
+		const error = new HttpError(
+			"Email already exists, please use a different email",
+			422
+		);
+		return next(error);
+	}
 
-	users.push(newUser);
-	res.status(201).json({ user: newUser });
+	let newUser;
+	try {
+		newUser = new User({
+			name,
+			email,
+			password,
+			image: "https://dummyimage.com/600x400/000/fff",
+			places: [],
+		});
+
+		await newUser.save();
+	} catch (err) {
+		return next(HttpError("Signing up failed, please try again later", 500));
+	}
+
+	res.status(201).json({ user: newUser.toObject({ getters: true }) });
 }
 
-function login(req, res, next) {
+async function login(req, res, next) {
 	const { email, password } = req.body;
+	let userExists;
+	try {
+		userExists = await User.findOne({ email });
+	} catch (error) {
+		return next(new HttpError("Login failed, please try again later,", 500));
+	}
 
-	const userExists = users.find(
-		(u) => u.email === email && u.password === password
-	);
-	if (!userExists) {
+	if (!userExists || password !== userExists.password) {
 		const error = new HttpError(
 			"User not found or credentials are wrong, please try again.",
 			401
 		);
-		throw error;
+		return next(error);
 	}
 
 	res.status(200).json({ message: "User logged in successfully" });
