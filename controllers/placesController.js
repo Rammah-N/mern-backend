@@ -1,74 +1,45 @@
 const uuid = require("uuid").v4;
 const { validationResult } = require("express-validator");
+const mongoose = require("mongoose");
+const Place = require("../models/place");
+const User = require("../models/user");
+
 const HttpError = require("../models/httpError");
 
-const places = [
-	{
-		id: "1",
-		title: "Building 1",
-		description: "building",
-		location: {
-			lat: 40.7484474,
-			lng: -73.9871516,
-		},
-		address: "address",
-		creator: "u1",
-	},
-	{
-		id: "2",
-		title: "Building 2",
-		description: "building",
-		location: {
-			lat: 40.7484474,
-			lng: -73.9871516,
-		},
-		address: "address",
-		creator: "u1",
-	},
-	{
-		id: "3",
-		title: "Building 3",
-		description: "building",
-		location: {
-			lat: 40.7484474,
-			lng: -73.9871516,
-		},
-		address: "address",
-		creator: "u2",
-	},
-	{
-		id: "4",
-		title: "Building 4",
-		description: "building",
-		location: {
-			lat: 40.7484474,
-			lng: -73.9871516,
-		},
-		address: "address",
-		creator: "u4",
-	},
-];
-
-function getPlaceByID(req, res, next) {
+async function getPlaceByID(req, res, next) {
 	const pid = req.params.pid;
-	const place = places.find((p) => p.id === pid);
+	let place;
+	try {
+		place = await Place.findById(pid);
+	} catch (err) {
+		throw new HttpError("Something went wrong, please try again", 500);
+	}
 
 	if (!place) {
 		return next(new HttpError("Could not find a place with this id", 404));
 	}
-	res.json({ place });
+	res.json({ place: place.toObject({ getters: true }) });
 }
 
-function getPlacesByUserID(req, res, next) {
+async function getPlacesByUserID(req, res, next) {
 	const uid = req.params.uid;
-	const userPlaces = places.filter((p) => p.creator === uid);
+	let userPlaces;
+	try {
+		userPlaces = await Place.find({ creator: uid });
+	} catch (err) {
+		throw new HttpError("Something went wrong, please try again", 500);
+	}
+
 	if (userPlaces.length === 0) {
 		throw new HttpError("Could not find a place for the current user", 404);
 	}
-	res.json({ userPlaces });
+
+	res.json({
+		userPlaces: userPlaces.map((place) => place.toObject({ getters: true })),
+	});
 }
 
-function addPlace(req, res, next) {
+async function addPlace(req, res, next) {
 	const errors = validationResult(req);
 
 	if (!errors.isEmpty()) {
@@ -76,21 +47,45 @@ function addPlace(req, res, next) {
 	}
 
 	const { title, description, location, address, creator } = req.body;
+	let user;
 
-	const newPlace = {
-		id: uuid(),
+	try {
+		user = await User.findById(creator);
+	} catch (error) {
+		return next(
+			new HttpError("There was a problem on our side, please try again later")
+		);
+	}
+
+	if (!user) {
+		return next(
+			new HttpError("Couldn't find user with provided Id, please try again")
+		);
+	}
+
+	const newPlace = new Place({
 		title,
 		description,
-		location,
+		image: "https://dummyimage.com/600x400/000/fff",
 		address,
+		location,
 		creator,
-	};
+	});
+	try {
+		const session = await mongoose.startSession();
+		session.startTransaction();
+		await newPlace.save({ session });
+		user.places.push(newPlace);
+		await user.save({ session });
+		await session.commitTransaction();
+	} catch (err) {
+		return next(HttpError("Place could not be saved, please try again", 500));
+	}
 
-	places.push(newPlace);
 	res.status(201).json({ place: newPlace });
 }
 
-function updatePlace(req, res, next) {
+async function updatePlace(req, res, next) {
 	const errors = validationResult(req);
 
 	if (!errors.isEmpty()) {
@@ -98,22 +93,29 @@ function updatePlace(req, res, next) {
 	}
 
 	const pid = req.params.pid;
-	const newPlace = req.body;
-	const index = places.find((p) => p.id === pid);
+	const { title, description } = req.body;
+	let place;
+	try {
+		place = await Place.findByIdAndUpdate(
+			pid,
+			{ title, description },
+			{ new: true }
+		);
+	} catch (err) {
+		throw new HttpError("Error updating place, please try again later");
+	}
 
-	places[index] = newPlace;
-
-	res.status(200).json({ place: newPlace });
+	res.status(200).json({ place });
 }
 
-function deletePlace(req, res, next) {
-	const pid = req.params.id;
-	const index = places.find((p) => p.id === pid);
-	if (index >= 0) {
-		places.splice(index, 1);
-		res.status(200).json({ message: "Place was deleted successfully " });
+async function deletePlace(req, res, next) {
+	const pid = req.params.pid;
+	try {
+		await Place.findByIdAndRemove(pid);
+	} catch (err) {
+		next(HttpError("Error deleting place, please try again later"));
 	}
-	throw new HttpError("Could not find a place", 400);
+	res.status(200).json({ message: "Place was deleted successfully " });
 }
 
 exports.getPlaceByID = getPlaceByID;
