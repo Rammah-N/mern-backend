@@ -3,7 +3,7 @@ const { validationResult } = require("express-validator");
 const mongoose = require("mongoose");
 const Place = require("../models/place");
 const User = require("../models/user");
-
+const fs = require("fs");
 const HttpError = require("../models/httpError");
 
 async function getPlaceByID(req, res, next) {
@@ -30,14 +30,11 @@ async function getPlacesByUserID(req, res, next) {
 	} catch (err) {
 		throw new HttpError("Something went wrong, please try again", 500);
 	}
-	console.log(user);
 	if (!user || user.places.length === 0) {
 		throw new HttpError("Could not find a place for the current user", 404);
 	}
 
-	res.json({
-		places: user.places.map((place) => place.toObject({ getters: true })),
-	});
+	res.json(user.places.map((place) => place.toObject({ getters: true })));
 }
 
 async function addPlace(req, res, next) {
@@ -73,11 +70,15 @@ async function addPlace(req, res, next) {
 	const newPlace = new Place({
 		title,
 		description,
-		image: "https://dummyimage.com/600x400/000/fff",
+		image: req.file.path,
 		address,
-		location,
+		location: location || {
+			lat: 54.43434,
+			lng: 43.252,
+		},
 		creator,
 	});
+
 	try {
 		const session = await mongoose.startSession();
 		session.startTransaction();
@@ -100,7 +101,6 @@ async function updatePlace(req, res, next) {
 	if (!errors.isEmpty()) {
 		res.status(422).json(errors);
 	}
-
 	const pid = req.params.pid;
 	const { title, description } = req.body;
 	let place;
@@ -125,7 +125,6 @@ async function deletePlace(req, res, next) {
 
 	try {
 		place = await Place.findById(pid).populate("creator");
-		console.log(place);
 	} catch (err) {
 		return next(
 			new HttpError(
@@ -144,6 +143,8 @@ async function deletePlace(req, res, next) {
 		);
 	}
 
+	const imagePath = place.image;
+
 	try {
 		const session = await mongoose.startSession();
 		session.startTransaction();
@@ -158,6 +159,7 @@ async function deletePlace(req, res, next) {
 			404
 		);
 	}
+	fs.unlink(imagePath, (err) => {});
 	res.status(200).json({ message: "Place was deleted successfully " });
 }
 

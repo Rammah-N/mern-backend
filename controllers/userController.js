@@ -14,9 +14,7 @@ async function getUsers(req, res, next) {
 			500
 		);
 	}
-	res
-		.status(200)
-		.json({ users: users.map((user) => user.toObject({ getters: true })) });
+	res.status(200).json(users.map((user) => user.toObject({ getters: true })));
 }
 
 async function signup(req, res, next) {
@@ -52,7 +50,7 @@ async function signup(req, res, next) {
 			name,
 			email,
 			password,
-			image: "https://dummyimage.com/600x400/000/fff",
+			image: req.file.path,
 			places: [],
 		});
 
@@ -81,7 +79,10 @@ async function login(req, res, next) {
 		return next(error);
 	}
 
-	res.status(200).json({ message: "User logged in successfully" });
+	res.status(200).json({
+		message: "User logged in successfully",
+		user: userExists.toObject({ getters: true }),
+	});
 }
 
 exports.getUsers = getUsers;
