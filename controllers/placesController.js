@@ -12,7 +12,7 @@ async function getPlaceByID(req, res, next) {
 	try {
 		place = await Place.findById(pid);
 	} catch (err) {
-		throw new HttpError("Something went wrong, please try again", 500);
+		return next(new HttpError("Something went wrong, please try again", 500));
 	}
 
 	if (!place) {
@@ -28,10 +28,12 @@ async function getPlacesByUserID(req, res, next) {
 	try {
 		user = await User.findById(uid).populate("places");
 	} catch (err) {
-		throw new HttpError("Something went wrong, please try again", 500);
+		return next(new HttpError("Something went wrong, please try again", 500));
 	}
 	if (!user || user.places.length === 0) {
-		throw new HttpError("Could not find a place for the current user", 404);
+		return next(
+			new HttpError("Could not find a place for the current user", 404)
+		);
 	}
 
 	res.json(user.places.map((place) => place.toObject({ getters: true })));
@@ -76,7 +78,7 @@ async function addPlace(req, res, next) {
 			lat: 54.43434,
 			lng: 43.252,
 		},
-		creator,
+		creator: req.userData.userId,
 	});
 
 	try {
@@ -97,7 +99,6 @@ async function addPlace(req, res, next) {
 
 async function updatePlace(req, res, next) {
 	const errors = validationResult(req);
-
 	if (!errors.isEmpty()) {
 		res.status(422).json(errors);
 	}
@@ -105,17 +106,27 @@ async function updatePlace(req, res, next) {
 	const { title, description } = req.body;
 	let place;
 	try {
-		place = await Place.findByIdAndUpdate(
-			pid,
-			{ title, description },
-			{ new: true }
-		);
+		place = await Place.findById(pid);
 	} catch (err) {
 		return next(
 			new HttpError("Error updating place, please try again later", 500)
 		);
 	}
+	if (place.creator.toString() !== req.userData.userId) {
+		return next(
+			new HttpError("You are not authorized to modify this item!", 401)
+		);
+	}
 
+	place.title = title;
+	place.description = description;
+	try {
+		await place.save();
+	} catch (err) {
+		return next(
+			new HttpError("Error updating place, please try again later", 500)
+		);
+	}
 	res.status(200).json({ place });
 }
 
@@ -140,6 +151,11 @@ async function deletePlace(req, res, next) {
 				"Couldn't find place with provided Id, please try again",
 				404
 			)
+		);
+	}
+	if (place.creator.id !== req.userData.userId) {
+		return next(
+			new HttpError("You are not authorized to modify this item!", 401)
 		);
 	}
 
