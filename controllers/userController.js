@@ -69,7 +69,7 @@ async function signup(req, res, next) {
 
 		await newUser.save();
 	} catch (err) {
-		return next(HttpError("Signing up failed, please try again later", 500));
+		return next(new HttpError("Signing up failed, please try again later", 500));
 	}
 
 	let token;
@@ -78,7 +78,7 @@ async function signup(req, res, next) {
 			expiresIn: "1h",
 		});
 	} catch (err) {
-		return next(HttpError("Signing up failed, please try again later", 500));
+		return next(new HttpError("Signing up failed, please try again later", 500));
 	}
 
 	res.status(201).json({
@@ -128,7 +128,7 @@ async function login(req, res, next) {
 			}
 		);
 	} catch (err) {
-		return next(HttpError("Signing in failed, please try again later", 500));
+		return next(new HttpError("Signing in failed, please try again later", 500));
 	}
 
 	res.status(200).json({
