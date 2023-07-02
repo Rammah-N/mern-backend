@@ -75,8 +75,8 @@ async function addPlace(req, res, next) {
 		image: req.file.path,
 		address,
 		location: location || {
-			lat: 54.43434,
-			lng: 43.252,
+			lat: 25.1957339,
+			lng: 55.2659489,
 		},
 		creator: req.userData.userId,
 	});

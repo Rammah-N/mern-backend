@@ -74,7 +74,7 @@ async function signup(req, res, next) {
 
 	let token;
 	try {
-		token = jwt.sign({ userId: newUser.id, email }, "bajbaj", {
+		token = jwt.sign({ userId: newUser.id, email }, process.env.JWT_SECRET, {
 			expiresIn: "1h",
 		});
 	} catch (err) {
@@ -122,7 +122,7 @@ async function login(req, res, next) {
 	try {
 		token = jwt.sign(
 			{ userId: existingUser.id, email: existingUser.email },
-			"bajbaj",
+			process.env.JWT_SECRET,
 			{
 				expiresIn: "1h",
 			}
