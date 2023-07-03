@@ -29,7 +29,7 @@ app.use("/api/users", usersRoutes);
 
 app.use((req, res, next) => {
 	const error = new HttpError("Route not found", 404);
-	throw error;
+	next(error);
 });
 
 app.use((error, req, res, next) => {
