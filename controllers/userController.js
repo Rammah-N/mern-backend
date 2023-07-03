@@ -62,7 +62,7 @@ async function signup(req, res, next) {
 			name,
 			email,
 			password: hashedPassword,
-			image: req.file.path,
+			image: req.file ? req.file.path : null,
 			places: [],
 		});
 
