@@ -21,9 +21,8 @@ async function getUsers(req, res, next) {
 
 async function signup(req, res, next) {
 	const errors = validationResult(req);
-
 	if (!errors.isEmpty()) {
-		res.status(422).json(errors);
+		return res.status(422).json({error: errors});
 	}
 
 	const { name, email, password } = req.body;
