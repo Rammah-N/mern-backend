@@ -13,7 +13,7 @@ app.use(bodyParser.json());
 
 app.use(
 	"/uploads/images",
-	express.static(path.join(process.cwd, "uploads/images"))
+	express.static(path.join(process.cwd(), "uploads/images"))
 );
 
 app.use((req, res, next) => {
