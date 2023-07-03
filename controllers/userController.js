@@ -22,7 +22,7 @@ async function getUsers(req, res, next) {
 async function signup(req, res, next) {
 	const errors = validationResult(req);
 	if (!errors.isEmpty()) {
-		return res.status(422).json({error: errors});
+		return res.status(422).json({ error: errors });
 	}
 
 	const { name, email, password } = req.body;
@@ -62,13 +62,15 @@ async function signup(req, res, next) {
 			name,
 			email,
 			password: hashedPassword,
-			image: req.file ? req.file.path : null,
+			image: req.cloudinaryUrl ? req.cloudinaryUrl : null,
 			places: [],
 		});
 
 		await newUser.save();
 	} catch (err) {
-		return next(new HttpError("Signing up failed, please try again later", 500));
+		return next(
+			new HttpError("Signing up failed, please try again later", 500)
+		);
 	}
 
 	let token;
@@ -77,7 +79,9 @@ async function signup(req, res, next) {
 			expiresIn: "1h",
 		});
 	} catch (err) {
-		return next(new HttpError("Signing up failed, please try again later", 500));
+		return next(
+			new HttpError("Signing up failed, please try again later", 500)
+		);
 	}
 
 	res.status(201).json({
@@ -128,7 +132,9 @@ async function login(req, res, next) {
 			}
 		);
 	} catch (err) {
-		return next(new HttpError("Signing in failed, please try again later", 500));
+		return next(
+			new HttpError("Signing in failed, please try again later", 500)
+		);
 	}
 
 	res.status(200).json({

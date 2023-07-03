@@ -8,7 +8,8 @@ const usersControllers = require("../controllers/userController");
 router.get("/", usersControllers.getUsers);
 router.post(
 	"/signup",
-	fileUpload.single("image"),
+	fileUpload.fileUpload.single("image"),
+	fileUpload.attachCloudinaryURL,
 	[
 		check("name").not().isEmpty(),
 		check("email").isEmail(),

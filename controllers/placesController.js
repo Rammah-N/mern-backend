@@ -72,7 +72,7 @@ async function addPlace(req, res, next) {
 	const newPlace = new Place({
 		title,
 		description,
-		image: req.file.path,
+		image: req.cloudinaryUrl ? req.cloudinaryUrl : null,
 		address,
 		location: location || {
 			lat: 25.1957339,

@@ -14,7 +14,8 @@ router.use(auth);
 
 router.post(
 	"/",
-	fileUpload.single("image"),
+	fileUpload.fileUpload.single("image"),
+	fileUpload.attachCloudinaryURL,
 	[
 		check("title").not().isEmpty(),
 		check("description").isLength({ min: 5 }),

@@ -11,8 +11,6 @@ const app = express();
 
 app.use(bodyParser.json());
 
-app.use("/uploads", express.static(path.join(process.cwd(), "tmp")));
-
 app.use((req, res, next) => {
 	res.setHeader("Access-Control-Allow-Origin", "*");
 	res.setHeader(
