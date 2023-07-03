@@ -113,7 +113,8 @@ async function login(req, res, next) {
 	if (!isValidPassword) {
 		return next(
 			new HttpError(
-				"Wrong password, please enter the correct password and try again"
+				"Wrong password, please enter the correct password and try again",
+				422
 			)
 		);
 	}
